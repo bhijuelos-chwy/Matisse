@@ -70,7 +70,7 @@ public class Album implements Parcelable {
         String clumn = cursor.getString(cursor.getColumnIndex(AlbumLoader.COLUMN_URI));
         return new Album(
                 cursor.getString(cursor.getColumnIndex("bucket_id")),
-                Uri.parse(clumn != null ? clumn : ""),
+                Uri.parse(cursor.getString(cursor.getColumnIndex(AlbumLoader.COLUMN_URI))),
                 cursor.getString(cursor.getColumnIndex("bucket_display_name")),
                 cursor.getLong(cursor.getColumnIndex(AlbumLoader.COLUMN_COUNT)));
     }

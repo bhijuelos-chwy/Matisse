@@ -40,13 +40,11 @@ import java.util.Set;
  * Load all albums (grouped by bucket_id) into a single cursor.
  */
 public class AlbumLoader extends CursorLoader {
-
     private static final String COLUMN_BUCKET_ID = "bucket_id";
     private static final String COLUMN_BUCKET_DISPLAY_NAME = "bucket_display_name";
     public static final String COLUMN_URI = "uri";
     public static final String COLUMN_COUNT = "count";
     private static final Uri QUERY_URI = MediaStore.Files.getContentUri("external");
-
     private static final String[] COLUMNS = {
             MediaStore.Files.FileColumns._ID,
             COLUMN_BUCKET_ID,
@@ -54,7 +52,6 @@ public class AlbumLoader extends CursorLoader {
             MediaStore.MediaColumns.MIME_TYPE,
             COLUMN_URI,
             COLUMN_COUNT};
-
     private static final String[] PROJECTION = {
             MediaStore.Files.FileColumns._ID,
             COLUMN_BUCKET_ID,
@@ -122,7 +119,7 @@ public class AlbumLoader extends CursorLoader {
         super(
                 context,
                 QUERY_URI,
-                beforeAndroidTen() ? PROJECTION : PROJECTION_29,
+                android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ? PROJECTION : PROJECTION_29,
                 selection,
                 selectionArgs,
                 BUCKET_ORDER_BY
@@ -133,22 +130,16 @@ public class AlbumLoader extends CursorLoader {
         String selection;
         String[] selectionArgs;
         if (SelectionSpec.getInstance().onlyShowGif()) {
-            selection = beforeAndroidTen()
-                    ? SELECTION_FOR_SINGLE_MEDIA_GIF_TYPE : SELECTION_FOR_SINGLE_MEDIA_GIF_TYPE_29;
-            selectionArgs = getSelectionArgsForSingleMediaGifType(
-                    MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE);
-        } else if (SelectionSpec.getInstance().onlyShowImages()) {
-            selection = beforeAndroidTen()
-                    ? SELECTION_FOR_SINGLE_MEDIA_TYPE : SELECTION_FOR_SINGLE_MEDIA_TYPE_29;
-            selectionArgs = getSelectionArgsForSingleMediaType(
-                    MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE);
+            selection = android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ? SELECTION_FOR_SINGLE_MEDIA_GIF_TYPE : SELECTION_FOR_SINGLE_MEDIA_GIF_TYPE_29;
+            selectionArgs = getSelectionArgsForSingleMediaGifType(MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE);
+        }else if (SelectionSpec.getInstance().onlyShowImages()) {
+            selection = android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ? SELECTION_FOR_SINGLE_MEDIA_TYPE : SELECTION_FOR_SINGLE_MEDIA_TYPE_29;
+            selectionArgs = getSelectionArgsForSingleMediaType(MediaStore.Files.FileColumns.MEDIA_TYPE_IMAGE);
         } else if (SelectionSpec.getInstance().onlyShowVideos()) {
-            selection = beforeAndroidTen()
-                    ? SELECTION_FOR_SINGLE_MEDIA_TYPE : SELECTION_FOR_SINGLE_MEDIA_TYPE_29;
-            selectionArgs = getSelectionArgsForSingleMediaType(
-                    MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO);
+            selection = android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ? SELECTION_FOR_SINGLE_MEDIA_TYPE : SELECTION_FOR_SINGLE_MEDIA_TYPE_29;
+            selectionArgs = getSelectionArgsForSingleMediaType(MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO);
         } else {
-            selection = beforeAndroidTen() ? SELECTION : SELECTION_29;
+            selection = android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ? SELECTION : SELECTION_29;
             selectionArgs = SELECTION_ARGS;
         }
         return new AlbumLoader(context, selection, selectionArgs);
@@ -157,28 +148,22 @@ public class AlbumLoader extends CursorLoader {
     @Override
     public Cursor loadInBackground() {
         Cursor albums = super.loadInBackground();
-        MatrixCursor allAlbum = new MatrixCursor(COLUMNS);
+        MatrixCursor allAlbum = new MatrixCursor(COLUMNS);        
 
-        if (beforeAndroidTen()) {
+        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             int totalCount = 0;
             Uri allAlbumCoverUri = null;
             MatrixCursor otherAlbums = new MatrixCursor(COLUMNS);
             if (albums != null) {
                 while (albums.moveToNext()) {
-                    long fileId = albums.getLong(
-                            albums.getColumnIndex(MediaStore.Files.FileColumns._ID));
-                    long bucketId = albums.getLong(
-                            albums.getColumnIndex(COLUMN_BUCKET_ID));
-                    String bucketDisplayName = albums.getString(
-                            albums.getColumnIndex(COLUMN_BUCKET_DISPLAY_NAME));
-                    String mimeType = albums.getString(
-                            albums.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE));
+                    long fileId = albums.getLong(albums.getColumnIndex(MediaStore.Files.FileColumns._ID));
+                    long bucketId = albums.getLong(albums.getColumnIndex(COLUMN_BUCKET_ID));
+                    String bucketDisplayName = albums.getString(albums.getColumnIndex(COLUMN_BUCKET_DISPLAY_NAME));
+                    String mimeType = albums.getString(albums.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE));
                     Uri uri = getUri(albums);
                     int count = albums.getInt(albums.getColumnIndex(COLUMN_COUNT));
 
-                    otherAlbums.addRow(new String[]{
-                            Long.toString(fileId),
-                            Long.toString(bucketId), bucketDisplayName, mimeType, uri.toString(),
+                    otherAlbums.addRow(new String[]{Long.toString(fileId), Long.toString(bucketId), bucketDisplayName, mimeType, uri.toString(),
                             String.valueOf(count)});
                     totalCount += count;
                 }
@@ -187,8 +172,7 @@ public class AlbumLoader extends CursorLoader {
                 }
             }
 
-            allAlbum.addRow(new String[]{
-                    Album.ALBUM_ID_ALL, Album.ALBUM_ID_ALL, Album.ALBUM_NAME_ALL, null,
+            allAlbum.addRow(new String[]{Album.ALBUM_ID_ALL, Album.ALBUM_ID_ALL, Album.ALBUM_NAME_ALL, null,
                     allAlbumCoverUri == null ? null : allAlbumCoverUri.toString(),
                     String.valueOf(totalCount)});
 
@@ -217,7 +201,7 @@ public class AlbumLoader extends CursorLoader {
             if (albums != null) {
                 if (albums.moveToFirst()) {
                     allAlbumCoverUri = getUri(albums);
-
+                    
                     Set<Long> done = new HashSet<>();
 
                     do {
@@ -227,21 +211,13 @@ public class AlbumLoader extends CursorLoader {
                             continue;
                         }
 
-                        long fileId = albums.getLong(
-                                albums.getColumnIndex(MediaStore.Files.FileColumns._ID));
-                        String bucketDisplayName = albums.getString(
-                                albums.getColumnIndex(COLUMN_BUCKET_DISPLAY_NAME));
-                        String mimeType = albums.getString(
-                                albums.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE));
+                        long fileId = albums.getLong(albums.getColumnIndex(MediaStore.Files.FileColumns._ID));
+                        String bucketDisplayName = albums.getString(albums.getColumnIndex(COLUMN_BUCKET_DISPLAY_NAME));
+                        String mimeType = albums.getString(albums.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE));
                         Uri uri = getUri(albums);
                         long count = countMap.get(bucketId);
 
-                        otherAlbums.addRow(new String[]{
-                                Long.toString(fileId),
-                                Long.toString(bucketId),
-                                bucketDisplayName,
-                                mimeType,
-                                uri.toString(),
+                        otherAlbums.addRow(new String[]{Long.toString(fileId), Long.toString(bucketId), bucketDisplayName, mimeType, uri.toString(),
                                 String.valueOf(count)});
                         done.add(bucketId);
 
@@ -250,9 +226,7 @@ public class AlbumLoader extends CursorLoader {
                 }
             }
 
-            allAlbum.addRow(new String[]{
-                    Album.ALBUM_ID_ALL,
-                    Album.ALBUM_ID_ALL, Album.ALBUM_NAME_ALL, null,
+            allAlbum.addRow(new String[]{Album.ALBUM_ID_ALL, Album.ALBUM_ID_ALL, Album.ALBUM_NAME_ALL, null,
                     allAlbumCoverUri == null ? null : allAlbumCoverUri.toString(),
                     String.valueOf(totalCount)});
 
@@ -262,8 +236,7 @@ public class AlbumLoader extends CursorLoader {
 
     private static Uri getUri(Cursor cursor) {
         long id = cursor.getLong(cursor.getColumnIndex(MediaStore.Files.FileColumns._ID));
-        String mimeType = cursor.getString(
-                cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE));
+        String mimeType = cursor.getString(cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE));
         Uri contentUri;
 
         if (MimeType.isImage(mimeType)) {
@@ -282,12 +255,5 @@ public class AlbumLoader extends CursorLoader {
     @Override
     public void onContentChanged() {
         // FIXME a dirty way to fix loading multiple times
-    }
-
-    /**
-     * @return 是否是 Android 10 （Q） 之前的版本
-     */
-    private static boolean beforeAndroidTen() {
-        return android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.Q;
     }
 }
